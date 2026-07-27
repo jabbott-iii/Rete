@@ -1,2 +1,2 @@
 # Capsus
-A golang CLI library.
+A golang CLI/TUI library.
