@@ -17,8 +17,8 @@ limitations under the License.
 package internal
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/driver/sqlite"
@@ -94,16 +94,16 @@ const (
 
 // ScanJob records an invocation of a diagnostic or security command.
 type ScanJob struct {
-	ID        uint       `gorm:"primaryKey;autoIncrement"`
-	FeatureID *uint      `gorm:"index"`
-	Feature   *Feature   `gorm:"foreignKey:FeatureID"`
-	Target    string     `gorm:"size:512"`
-	Command   string     `gorm:"size:512;not null"`
-	Args      string     `gorm:"type:text"`
-	Status    JobStatus  `gorm:"size:32;default:'pending';not null"`
-	StartedAt *time.Time `gorm:"column:started_at"`
-	EndedAt   *time.Time `gorm:"column:ended_at"`
-	CreatedAt time.Time  `gorm:"autoCreateTime"`
+	ID        uint         `gorm:"primaryKey;autoIncrement"`
+	FeatureID *uint        `gorm:"index"`
+	Feature   *Feature     `gorm:"foreignKey:FeatureID"`
+	Target    string       `gorm:"size:512"`
+	Command   string       `gorm:"size:512;not null"`
+	Args      string       `gorm:"type:text"`
+	Status    JobStatus    `gorm:"size:32;default:'pending';not null"`
+	StartedAt *time.Time   `gorm:"column:started_at"`
+	EndedAt   *time.Time   `gorm:"column:ended_at"`
+	CreatedAt time.Time    `gorm:"autoCreateTime"`
 	Results   []ScanResult `gorm:"foreignKey:JobID"`
 }
 

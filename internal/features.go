@@ -36,7 +36,11 @@ func SeedFeaturesFromCSV(db *Database, path string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("open %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+		}
+	}(f)
 	return SeedFeaturesFromReader(db, f)
 }
 
