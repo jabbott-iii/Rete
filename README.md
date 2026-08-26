@@ -169,3 +169,41 @@ Windows:
 ```
 Download rete-windows-amd64.exe and add it to your PATH as rete.
 ```
+
+## Docker
+
+Build the image:
+```bash
+docker build -t rete .
+```
+
+Run the default interactive TUI:
+```bash
+docker run -it --rm \
+  -v rete-data:/app/data \
+  -e RETE_DB_PATH=/app/data/rete.db \
+  rete
+```
+Run a specific command, for example feature listing:
+```bash
+docker run -it --rm \
+  -v rete-data:/app/data \
+  -e RETE_DB_PATH=/app/data/rete.db \
+  rete features list
+```
+Run a network scan example:
+```bash
+docker run -it --rm \
+  --cap-add=NET_RAW \
+  --network host \
+  -v rete-data:/app/data \
+  -e RETE_DB_PATH=/app/data/rete.db \
+  rete recon ping-sweep --target 192.168.1.0/24
+```
+Note:
+ - The container uses RETE_DB_PATH=/app/data/rete.db by default.
+ - Database state is persisted in /app/data.
+ - Some reconnaissance and security features may require elevated network permissions such as --network host and --cap-add=NET_RAW.
+ - If a command needs direct access to the local network interface, you may also need to pass additional Linux capabilities depending on the feature being used.
+
+
