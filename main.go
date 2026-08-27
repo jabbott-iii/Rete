@@ -31,6 +31,10 @@ func main() {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
 
+	if err := internal.EnsureDefaultFeatures(db); err != nil {
+		log.Fatalf("failed to seed default features: %v", err)
+	}
+
 	rootCmd := internal.NewRootCmd(db)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

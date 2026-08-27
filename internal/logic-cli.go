@@ -741,7 +741,7 @@ func newFeaturesListCmd(db *Database) *cobra.Command {
 				return err
 			}
 			if len(features) == 0 {
-				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "No features found. Run: rete features seed --file table.csv")
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "No features found.")
 				return nil
 			}
 
@@ -767,8 +767,8 @@ func newFeaturesSeedCmd(db *Database) *cobra.Command {
 	var csvFile string
 	cmd := &cobra.Command{
 		Use:     "seed",
-		Short:   "Seed the feature catalog from a CSV file",
-		Example: "  rete features seed --file table.csv",
+		Short:   "Seed the feature catalog from a CSV file (admin import)",
+		Example: "  rete features seed --file custom.csv",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			count, err := SeedFeaturesFromCSV(db, csvFile)
 			if err != nil {
@@ -778,7 +778,8 @@ func newFeaturesSeedCmd(db *Database) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&csvFile, "file", "f", "table.csv", "Path to the CSV feature catalog")
+	cmd.Flags().StringVarP(&csvFile, "file", "f", "", "Path to a CSV feature catalog to import")
+	_ = cmd.MarkFlagRequired("file")
 	return cmd
 }
 

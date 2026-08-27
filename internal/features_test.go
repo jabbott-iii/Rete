@@ -98,7 +98,8 @@ func TestSeedFeaturesMissingColumn(t *testing.T) {
 func TestSeedFeaturesFromCSVFile(t *testing.T) {
 	db := newTestDB(t)
 
-	// Use the real table.csv in the repo root (two directories up from internal/).
+	// Use the real table.csv in the repo root (two directories up from internal/)
+	// to validate that the CSV admin-import path continues to work.
 	count, err := SeedFeaturesFromCSV(db, "../table.csv")
 	if err != nil {
 		t.Fatalf("SeedFeaturesFromCSV: %v", err)

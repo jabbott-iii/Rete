@@ -70,7 +70,7 @@ type FeatureCategory struct {
 	Features  []Feature `gorm:"foreignKey:CategoryID"`
 }
 
-// Feature is a single capability entry sourced from table.csv.
+// Feature is a single capability entry in the feature catalog.
 type Feature struct {
 	ID               uint            `gorm:"primaryKey;autoIncrement"`
 	CategoryID       uint            `gorm:"not null;index"`
