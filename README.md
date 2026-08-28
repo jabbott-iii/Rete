@@ -111,12 +111,13 @@ Examples:
 ### features
 
  - rete features list — list available features
- - rete features seed — seed the feature catalog from a CSV file
+ - rete features list — list available features
+ - rete features seed — import a custom feature catalog from a CSV file (admin use)
 
  Examples:
  - rete features list
  - rete features list --category 'Reconnaissance & Discovery'
- - rete features seed --file table.csv
+ - rete features seed --file custom.csv
 
 ### jobs
 

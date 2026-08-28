@@ -115,7 +115,7 @@ func (m *DashboardModel) View() string {
 
 	// Feature catalog
 	if len(m.categories) == 0 {
-		sb.WriteString("  No features loaded.  Run: rete features seed --file table.csv\n\n")
+		sb.WriteString("  No features loaded.\n\n")
 	} else {
 		sb.WriteString("  Features\n")
 		sb.WriteString("  " + strings.Repeat("─", 40) + "\n")
