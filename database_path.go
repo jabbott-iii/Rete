@@ -19,8 +19,8 @@ package main
 import "os"
 
 const (
-	databasePathEnv     = "RETE_DB_PATH"
-	defaultDatabasePath = "rete.db"
+	databasePathEnv     = "SALUS_DB_PATH"
+	defaultDatabasePath = "salus.db"
 )
 
 func databasePathFromEnv() string {

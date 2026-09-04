@@ -11,7 +11,7 @@ RUN go mod download
 
 # Copy source and build
 COPY . .
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o /out/rete .
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o /out/salus .
 
 FROM alpine:3.22
 
@@ -19,12 +19,12 @@ FROM alpine:3.22
 RUN apk add --no-cache ca-certificates sqlite-libs
 
 WORKDIR /app
-COPY --from=builder /out/rete /usr/local/bin/rete
+COPY --from=builder /out/salus /usr/local/bin/salus
 
 # Persist sqlite database file (rete.db)
 VOLUME ["/app/data"]
 
-ENV RETE_DB_PATH=/app/data/rete.db
+ENV SALUS_DB_PATH=/app/data/salus.db
 
 # This app is an interactive TUI/CLI
-ENTRYPOINT ["rete"]
+ENTRYPOINT ["salus"]

@@ -20,7 +20,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/jabbott-iii/Rete/internal"
+	"github.com/jabbott-iii/Salus/internal"
 )
 
 func main() {

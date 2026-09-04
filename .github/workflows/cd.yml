@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          APP=rete
+          APP=salus
           VERSION="${{ steps.meta.outputs.tag }}"
 
           build_and_package () {
