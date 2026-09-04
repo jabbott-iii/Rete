@@ -1,0 +1,289 @@
+/*
+Copyright 2026 Joseph Anthony Abbott III
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package internal
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
+	"strings"
+	"time"
+)
+
+// Built-in health check keys.
+const (
+	keyDiskSpace     = "disk-space"
+	keyMemory        = "memory"
+	keyCPULoad       = "cpu-load"
+	keyDocker        = "docker-status"
+	keyKubernetes    = "kubernetes-status"
+	keyServiceUptime = "service-uptime"
+	keyMisconfig     = "misconfig"
+)
+
+// AllCheckKeys lists every built-in check key in default run order.
+var AllCheckKeys = []string{
+	keyDiskSpace,
+	keyMemory,
+	keyCPULoad,
+	keyDocker,
+	keyKubernetes,
+	keyServiceUptime,
+	keyMisconfig,
+}
+
+// CheckStatus represents the severity of a single health check outcome.
+type CheckStatus string
+
+// Supported check statuses, ordered from healthiest to least healthy.
+const (
+	StatusPass CheckStatus = "PASS"
+	StatusWarn CheckStatus = "WARN"
+	StatusFail CheckStatus = "FAIL"
+)
+
+// CheckOutcome captures the result of running a single health check.
+type CheckOutcome struct {
+	Key      string        `json:"key"`
+	Status   CheckStatus   `json:"status"`
+	Message  string        `json:"message"`
+	Duration time.Duration `json:"duration_ns"`
+}
+
+// CheckOptions configures thresholds and targets used by the built-in health checks.
+type CheckOptions struct {
+	DiskPath        string
+	DiskWarnPercent float64
+	DiskFailPercent float64
+
+	MemWarnPercent float64
+	MemFailPercent float64
+
+	LoadWarnPercent float64
+	LoadFailPercent float64
+
+	ServiceName string
+
+	CommandTimeout time.Duration
+}
+
+// Default thresholds applied when the corresponding CheckOptions field is unset (<= 0).
+const (
+	defaultDiskWarnPercent = 80.0
+	defaultDiskFailPercent = 90.0
+	defaultMemWarnPercent  = 80.0
+	defaultMemFailPercent  = 90.0
+	defaultLoadWarnPercent = 80.0
+	defaultLoadFailPercent = 100.0
+	defaultCommandTimeout  = 3 * time.Second
+)
+
+func orDefault(v, def float64) float64 {
+	if v <= 0 {
+		return def
+	}
+	return v
+}
+
+func (o CheckOptions) diskWarnPercent() float64 {
+	return orDefault(o.DiskWarnPercent, defaultDiskWarnPercent)
+}
+func (o CheckOptions) diskFailPercent() float64 {
+	return orDefault(o.DiskFailPercent, defaultDiskFailPercent)
+}
+func (o CheckOptions) memWarnPercent() float64 {
+	return orDefault(o.MemWarnPercent, defaultMemWarnPercent)
+}
+func (o CheckOptions) memFailPercent() float64 {
+	return orDefault(o.MemFailPercent, defaultMemFailPercent)
+}
+func (o CheckOptions) loadWarnPercent() float64 {
+	return orDefault(o.LoadWarnPercent, defaultLoadWarnPercent)
+}
+func (o CheckOptions) loadFailPercent() float64 {
+	return orDefault(o.LoadFailPercent, defaultLoadFailPercent)
+}
+
+func (o CheckOptions) commandTimeout() time.Duration {
+	if o.CommandTimeout <= 0 {
+		return defaultCommandTimeout
+	}
+	return o.CommandTimeout
+}
+
+// thresholdStatus classifies value against warn/fail thresholds, attaching detail as the message.
+func thresholdStatus(value, warn, fail float64, detail string) (CheckStatus, string) {
+	switch {
+	case value >= fail:
+		return StatusFail, detail
+	case value >= warn:
+		return StatusWarn, detail
+	default:
+		return StatusPass, detail
+	}
+}
+
+// firstLine extracts a short, human-readable message from command output or an error.
+func firstLine(output string, err error) string {
+	output = strings.TrimSpace(output)
+	if output != "" {
+		return strings.SplitN(output, "\n", 2)[0]
+	}
+	if err != nil {
+		return err.Error()
+	}
+	return "unknown error"
+}
+
+type checkFunc func(CheckOptions) CheckOutcome
+
+var checkRegistry = map[string]checkFunc{
+	keyDiskSpace:     checkDiskSpace,
+	keyMemory:        checkMemory,
+	keyCPULoad:       checkCPULoad,
+	keyDocker:        checkDockerStatus,
+	keyKubernetes:    checkKubernetesStatus,
+	keyServiceUptime: checkServiceUptime,
+	keyMisconfig:     checkMisconfiguration,
+}
+
+// RunChecks executes the given check keys (or all built-in checks when keys is empty)
+// and returns their outcomes in the order requested.
+func RunChecks(keys []string, opts CheckOptions) ([]CheckOutcome, error) {
+	if len(keys) == 0 {
+		keys = AllCheckKeys
+	}
+
+	outcomes := make([]CheckOutcome, 0, len(keys))
+	for _, key := range keys {
+		fn, ok := checkRegistry[key]
+		if !ok {
+			return nil, fmt.Errorf("unknown check %q", key)
+		}
+		outcomes = append(outcomes, fn(opts))
+	}
+	return outcomes, nil
+}
+
+//--------------------------------------------------container & orchestration checks-------------------------------------------------------------------//
+
+func checkDockerStatus(opts CheckOptions) CheckOutcome {
+	start := time.Now()
+
+	if _, err := exec.LookPath("docker"); err != nil {
+		return CheckOutcome{Key: keyDocker, Status: StatusWarn, Message: "docker CLI not found in PATH", Duration: time.Since(start)}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), opts.commandTimeout())
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, "docker", "info", "--format", "{{.ServerVersion}}").CombinedOutput()
+	if err != nil {
+		return CheckOutcome{Key: keyDocker, Status: StatusFail, Message: fmt.Sprintf("docker daemon unreachable: %s", firstLine(string(out), err)), Duration: time.Since(start)}
+	}
+
+	version := strings.TrimSpace(string(out))
+	return CheckOutcome{Key: keyDocker, Status: StatusPass, Message: fmt.Sprintf("docker daemon reachable (server version %s)", version), Duration: time.Since(start)}
+}
+
+func checkKubernetesStatus(opts CheckOptions) CheckOutcome {
+	start := time.Now()
+
+	if _, err := exec.LookPath("kubectl"); err != nil {
+		return CheckOutcome{Key: keyKubernetes, Status: StatusWarn, Message: "kubectl CLI not found in PATH", Duration: time.Since(start)}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), opts.commandTimeout())
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, "kubectl", "cluster-info").CombinedOutput()
+	if err != nil {
+		return CheckOutcome{Key: keyKubernetes, Status: StatusFail, Message: fmt.Sprintf("kubernetes cluster unreachable: %s", firstLine(string(out), err)), Duration: time.Since(start)}
+	}
+
+	return CheckOutcome{Key: keyKubernetes, Status: StatusPass, Message: "kubernetes cluster reachable", Duration: time.Since(start)}
+}
+
+//--------------------------------------------------service & configuration checks---------------------------------------------------------------------//
+
+func checkServiceUptime(opts CheckOptions) CheckOutcome {
+	start := time.Now()
+	name := strings.TrimSpace(opts.ServiceName)
+
+	if name == "" {
+		return checkProcessUptime(start)
+	}
+
+	if runtime.GOOS != "linux" {
+		return CheckOutcome{Key: keyServiceUptime, Status: StatusWarn, Message: "service uptime check requires systemd (Linux only)", Duration: time.Since(start)}
+	}
+
+	if _, err := exec.LookPath("systemctl"); err != nil {
+		return CheckOutcome{Key: keyServiceUptime, Status: StatusWarn, Message: "systemctl not found in PATH", Duration: time.Since(start)}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), opts.commandTimeout())
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, "systemctl", "is-active", name).CombinedOutput()
+	state := strings.TrimSpace(string(out))
+
+	switch {
+	case err == nil && state == "active":
+		return CheckOutcome{Key: keyServiceUptime, Status: StatusPass, Message: fmt.Sprintf("service %q is active", name), Duration: time.Since(start)}
+	case state == "activating" || state == "reloading":
+		return CheckOutcome{Key: keyServiceUptime, Status: StatusWarn, Message: fmt.Sprintf("service %q is %s", name, state), Duration: time.Since(start)}
+	default:
+		if state == "" {
+			state = firstLine(string(out), err)
+		}
+		return CheckOutcome{Key: keyServiceUptime, Status: StatusFail, Message: fmt.Sprintf("service %q is not active (%s)", name, state), Duration: time.Since(start)}
+	}
+}
+
+func checkProcessUptime(start time.Time) CheckOutcome {
+	uptime, err := readSystemUptime()
+	if err != nil {
+		return CheckOutcome{Key: keyServiceUptime, Status: StatusWarn, Message: "no --service provided and host uptime unavailable: " + err.Error(), Duration: time.Since(start)}
+	}
+	return CheckOutcome{Key: keyServiceUptime, Status: StatusPass, Message: fmt.Sprintf("host has been up for %s", uptime.Round(time.Second)), Duration: time.Since(start)}
+}
+
+func checkMisconfiguration(opts CheckOptions) CheckOutcome {
+	start := time.Now()
+	var warnings []string
+
+	if _, ok := os.LookupEnv("HOME"); !ok && runtime.GOOS != "windows" {
+		warnings = append(warnings, "HOME environment variable is not set")
+	}
+
+	if dbPath := os.Getenv(databasePathEnvVar); dbPath != "" {
+		if info, err := os.Stat(dbPath); err == nil {
+			if info.Mode().Perm()&0o022 != 0 {
+				warnings = append(warnings, fmt.Sprintf("%s is writable by group/other", dbPath))
+			}
+		}
+	}
+
+	if len(warnings) == 0 {
+		return CheckOutcome{Key: keyMisconfig, Status: StatusPass, Message: "no common misconfigurations detected", Duration: time.Since(start)}
+	}
+
+	return CheckOutcome{Key: keyMisconfig, Status: StatusWarn, Message: strings.Join(warnings, "; "), Duration: time.Since(start)}
+}
