@@ -25,6 +25,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// databasePathEnvVar is the environment variable used to configure the sqlite database path.
+const databasePathEnvVar = "SALUS_DB_PATH"
+
 //--------------------------------------------------core-------------------------------------------------------------------------------------------------//
 
 // Database owns the gorm connection for internal data access.
@@ -61,3 +64,45 @@ func (d *Database) Conn() *gorm.DB {
 }
 
 //-----------------------------------------------------------models and types------------------------------------------------------------------------------------------------//
+
+// ErrNotFound is returned when a requested record does not exist.
+var ErrNotFound = errors.New("record not found")
+
+// FeatureCategory groups related health checks together (e.g. "System Resources").
+type FeatureCategory struct {
+	ID          uint   `gorm:"primaryKey"`
+	Name        string `gorm:"uniqueIndex;not null"`
+	Description string
+}
+
+// Feature describes a single health check available to run.
+type Feature struct {
+	ID          uint `gorm:"primaryKey"`
+	CategoryID  uint `gorm:"not null;index"`
+	Category    FeatureCategory
+	Key         string `gorm:"uniqueIndex;not null"`
+	Name        string `gorm:"not null"`
+	Description string
+}
+
+// ScanJob records a single execution of one or more health checks.
+type ScanJob struct {
+	ID         uint `gorm:"primaryKey"`
+	StartedAt  time.Time
+	FinishedAt *time.Time
+	Status     string // "running", "completed", or "failed"
+	Summary    string
+}
+
+// ScanResult records the outcome of one health check within a ScanJob.
+type ScanResult struct {
+	ID         uint `gorm:"primaryKey"`
+	ScanJobID  uint `gorm:"not null;index"`
+	FeatureID  uint `gorm:"not null;index"`
+	Feature    Feature
+	Key        string `gorm:"not null"`
+	Status     string `gorm:"not null"` // "PASS", "WARN", or "FAIL"
+	Message    string
+	DurationMs int64
+	CreatedAt  time.Time
+}
